@@ -6,8 +6,16 @@
 
 ---
 
+## 專案參與人
+Frey 傅暐程 frey.50302.fu.123@gmail.com
+刁元廷 tjimmy0113@gmail.com
+Alvin ooii8929@gmail.com
+
+---
+
 ## 💡 專案 Demo
 https://youtu.be/kE5gtMvK_TI
+https://drive.google.com/file/d/11X3Vzp-c48s-IwMnMFBf-W5gu10aM6xj/view?usp=sharing
 
 ---
 
