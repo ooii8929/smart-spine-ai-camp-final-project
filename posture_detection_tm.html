@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 坐姿偵測系統 (使用你的模型)</title>
+    <!-- TensorFlow.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <!-- Teachable Machine Pose -->
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 1400px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .model-badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 20px;
+            padding: 30px;
+        }
+
+        .video-section {
+            position: relative;
+        }
+
+        .video-container {
+            position: relative;
+            width: 100%;
+            background: #000;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+
+        #canvas {
+            width: 100%;
+            display: block;
+        }
+
+        .status-overlay {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.2em;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.correct {
+            background: #4ade80;
+            box-shadow: 0 0 10px #4ade80;
+        }
+
+        .status-indicator.incorrect {
+            background: #ef4444;
+            box-shadow: 0 0 10px #ef4444;
+        }
+
+        .status-indicator.loading {
+            background: #f59e0b;
+            box-shadow: 0 0 10px #f59e0b;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .info-card {
+            background: #f8fafc;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .info-card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .posture-status {
+            text-align: center;
+            padding: 30px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .posture-status.correct {
+            background: linear-gradient(135deg, #4ade80 0%, #22c55e 100%);
+            color: white;
+        }
+
+        .posture-status.incorrect {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+        }
+
+        .posture-status.loading {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+        }
+
+        .posture-status h2 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        .posture-status p {
+            font-size: 1em;
+            opacity: 0.9;
+        }
+
+        .confidence-bars {
+            margin-top: 15px;
+        }
+
+        .confidence-item {
+            margin: 12px 0;
+        }
+
+        .confidence-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.95em;
+            color: #64748b;
+        }
+
+        .confidence-bar {
+            width: 100%;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.85em;
+            font-weight: bold;
+        }
+
+        .confidence-fill.correct {
+            background: linear-gradient(90deg, #4ade80 0%, #22c55e 100%);
+        }
+
+        .confidence-fill.incorrect {
+            background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .stat-box {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .stat-number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #667eea;
+            display: block;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 0.85em;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 30px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.2);
+        }
+
+        .btn-secondary {
+            background: #e2e8f0;
+            color: #475569;
+        }
+
+        .btn-secondary:hover {
+            background: #cbd5e1;
+        }
+
+        .info-box {
+            background: #e0f2fe;
+            border-left: 4px solid #0ea5e9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+        }
+
+        .info-box h4 {
+            color: #075985;
+            margin-bottom: 8px;
+            font-size: 1em;
+        }
+
+        .info-box p {
+            color: #0c4a6e;
+            font-size: 0.9em;
+            line-height: 1.5;
+        }
+
+        .loading-spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 AI 坐姿偵測系統</h1>
+            <p>使用你的 Teachable Machine 模型</p>
+            <div class="model-badge">✨ 自訓練模型：正確的 vs 錯誤的</div>
+        </div>
+
+        <div class="main-content">
+            <div class="video-section">
+                <div class="video-container">
+                    <canvas id="canvas"></canvas>
+                    <div class="status-overlay">
+                        <div class="status-indicator loading" id="statusIndicator"></div>
+                        <span id="statusText">正在載入模型...</span>
+                    </div>
+                </div>
+                <div class="controls">
+                    <button class="btn btn-primary" id="startBtn" disabled>開始偵測</button>
+                    <button class="btn btn-secondary" id="resetBtn">重置統計</button>
+                </div>
+            </div>
+
+            <div class="sidebar">
+                <div class="posture-status loading" id="postureStatus">
+                    <h2>⏳ 載入中</h2>
+                    <p>正在初始化 AI 模型...</p>
+                    <div class="loading-spinner" style="margin-top: 20px;"></div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📊 AI 信心度</h3>
+                    <div class="confidence-bars">
+                        <div class="confidence-item">
+                            <div class="confidence-label">
+                                <span>✅ 正確的</span>
+                                <span id="correctPercentage">0%</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill correct" id="correctBar" style="width: 0%;">0%</div>
+                            </div>
+                        </div>
+                        <div class="confidence-item">
+                            <div class="confidence-label">
+                                <span>❌ 錯誤的</span>
+                                <span id="incorrectPercentage">0%</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill incorrect" id="incorrectBar" style="width: 0%;">0%</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3>📈 使用統計</h3>
+                    <div class="stats-grid">
+                        <div class="stat-box">
+                            <span class="stat-number" id="totalTime">0</span>
+                            <span class="stat-label">總時間(秒)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="correctTime">0</span>
+                            <span class="stat-label">正確(秒)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="incorrectTime">0</span>
+                            <span class="stat-label">錯誤(秒)</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-number" id="accuracy">0%</span>
+                            <span class="stat-label">正確率</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-box">
+                    <h4>💡 關於你的模型</h4>
+                    <p>這個系統使用你在 Teachable Machine 訓練的模型。模型已經學會了你定義的「正確的」和「錯誤的」坐姿。</p>
+                    <p style="margin-top: 10px;">如果準確度不理想，建議增加訓練樣本到 50+ 張每類，並確保樣本多樣性（不同角度、光線、背景）。</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模型 URL - 需要設定為你的模型位置
+        // 選項1: 上傳到網路空間（推薦）
+        // 選項2: 使用本地伺服器
+        const MODEL_URL = "./tm_model/";  // 模型檔案所在目錄
+
+        let model, webcam, ctx, labelContainer, maxPredictions;
+        let isRunning = false;
+        let currentPosture = { isCorrect: false, confidence: 0 };
+        
+        // 統計數據
+        let stats = {
+            totalTime: 0,
+            correctTime: 0,
+            incorrectTime: 0,
+            lastUpdateTime: Date.now()
+        };
+
+        // DOM 元素
+        const canvas = document.getElementById('canvas');
+        const statusIndicator = document.getElementById('statusIndicator');
+        const statusText = document.getElementById('statusText');
+        const postureStatus = document.getElementById('postureStatus');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+
+        // 初始化模型
+        async function init() {
+            try {
+                statusText.textContent = '正在載入 AI 模型...';
+                
+                // 載入 Teachable Machine Pose 模型
+                const modelURL = MODEL_URL + "model.json";
+                const metadataURL = MODEL_URL + "metadata.json";
+                
+                model = await tmPose.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                
+                console.log('模型載入成功！類別數量:', maxPredictions);
+                
+                // 設定 webcam
+                const size = 640;
+                const flip = true;
+                webcam = new tmPose.Webcam(size, size, flip);
+                await webcam.setup();
+                
+                canvas.width = size;
+                canvas.height = size;
+                ctx = canvas.getContext('2d');
+                
+                statusText.textContent = '準備就緒！';
+                statusIndicator.className = 'status-indicator correct';
+                postureStatus.className = 'posture-status correct';
+                postureStatus.innerHTML = '<h2>✅ 準備就緒</h2><p>點擊「開始偵測」按鈕開始</p>';
+                startBtn.disabled = false;
+                
+            } catch (error) {
+                console.error('初始化失敗:', error);
+                statusText.textContent = '載入失敗';
+                statusIndicator.className = 'status-indicator incorrect';
+                postureStatus.className = 'posture-status incorrect';
+                postureStatus.innerHTML = `
+                    <h2>❌ 載入失敗</h2>
+                    <p>${error.message}</p>
+                    <p style="margin-top: 10px; font-size: 0.9em;">
+                        請確認模型檔案位置正確，或使用本地伺服器開啟此頁面。
+                    </p>
+                `;
+            }
+        }
+
+        // 開始/停止偵測
+        async function toggleDetection() {
+            if (!isRunning) {
+                isRunning = true;
+                startBtn.textContent = '停止偵測';
+                await webcam.play();
+                stats.lastUpdateTime = Date.now();
+                requestAnimationFrame(loop);
+            } else {
+                isRunning = false;
+                startBtn.textContent = '開始偵測';
+                webcam.pause();
+            }
+        }
+
+        // 主循環
+        async function loop() {
+            if (!isRunning) return;
+            
+            webcam.update();
+            await predict();
+            requestAnimationFrame(loop);
+        }
+
+        // 預測
+        async function predict() {
+            // 姿態偵測
+            const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
+            
+            // 預測姿勢
+            const prediction = await model.predict(posenetOutput);
+            
+            // 繪製
+            drawPose(pose);
+            
+            // 更新 UI
+            updatePrediction(prediction);
+            updateStats();
+        }
+
+        // 繪製姿勢
+        function drawPose(pose) {
+            if (webcam.canvas) {
+                ctx.drawImage(webcam.canvas, 0, 0);
+                if (pose) {
+                    const minPartConfidence = 0.5;
+                    tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
+                    tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
+                }
+            }
+        }
+
+        // 更新預測結果
+        function updatePrediction(prediction) {
+            // 找出最高信心度的預測
+            let maxConfidence = 0;
+            let maxIndex = 0;
+            
+            prediction.forEach((pred, index) => {
+                if (pred.probability > maxConfidence) {
+                    maxConfidence = pred.probability;
+                    maxIndex = index;
+                }
+            });
+            
+            // 更新當前姿勢狀態
+            const isCorrect = prediction[0].className === "正確的" ? 
+                (maxIndex === 0) : (maxIndex === 1);
+            currentPosture = {
+                isCorrect: isCorrect,
+                confidence: maxConfidence
+            };
+            
+            // 更新信心度條
+            const correctProb = prediction.find(p => p.className === "正確的")?.probability || 0;
+            const incorrectProb = prediction.find(p => p.className === "錯誤的")?.probability || 0;
+            
+            const correctPercent = (correctProb * 100).toFixed(0);
+            const incorrectPercent = (incorrectProb * 100).toFixed(0);
+            
+            document.getElementById('correctPercentage').textContent = correctPercent + '%';
+            document.getElementById('incorrectPercentage').textContent = incorrectPercent + '%';
+            document.getElementById('correctBar').style.width = correctPercent + '%';
+            document.getElementById('correctBar').textContent = correctPercent + '%';
+            document.getElementById('incorrectBar').style.width = incorrectPercent + '%';
+            document.getElementById('incorrectBar').textContent = incorrectPercent + '%';
+            
+            // 更新狀態顯示
+            if (isCorrect) {
+                statusIndicator.className = 'status-indicator correct';
+                statusText.textContent = '姿勢正確 ✓';
+                postureStatus.className = 'posture-status correct';
+                postureStatus.innerHTML = `
+                    <h2>😊 姿勢正確</h2>
+                    <p>信心度: ${(maxConfidence * 100).toFixed(1)}%</p>
+                `;
+            } else {
+                statusIndicator.className = 'status-indicator incorrect';
+                statusText.textContent = '姿勢需要調整 ✗';
+                postureStatus.className = 'posture-status incorrect';
+                postureStatus.innerHTML = `
+                    <h2>⚠️ 姿勢不正確</h2>
+                    <p>信心度: ${(maxConfidence * 100).toFixed(1)}%</p>
+                `;
+            }
+        }
+
+        // 更新統計
+        function updateStats() {
+            const now = Date.now();
+            const elapsed = (now - stats.lastUpdateTime) / 1000;
+            stats.lastUpdateTime = now;
+
+            stats.totalTime += elapsed;
+            if (currentPosture.isCorrect) {
+                stats.correctTime += elapsed;
+            } else {
+                stats.incorrectTime += elapsed;
+            }
+
+            const accuracy = stats.totalTime > 0 
+                ? ((stats.correctTime / stats.totalTime) * 100).toFixed(1) 
+                : 0;
+
+            document.getElementById('totalTime').textContent = Math.floor(stats.totalTime);
+            document.getElementById('correctTime').textContent = Math.floor(stats.correctTime);
+            document.getElementById('incorrectTime').textContent = Math.floor(stats.incorrectTime);
+            document.getElementById('accuracy').textContent = accuracy + '%';
+        }
+
+        // 重置統計
+        function resetStats() {
+            if (confirm('確定要重置統計資料嗎？')) {
+                stats = {
+                    totalTime: 0,
+                    correctTime: 0,
+                    incorrectTime: 0,
+                    lastUpdateTime: Date.now()
+                };
+                updateStats();
+            }
+        }
+
+        // 事件監聽器
+        startBtn.addEventListener('click', toggleDetection);
+        resetBtn.addEventListener('click', resetStats);
+
+        // 初始化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>
