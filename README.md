@@ -1,105 +1,107 @@
-# 🦴 智脊 Smart Spine - 您的智慧坐姿健康管家
+# 🦴 Smart Spine - Your AI Posture Health Guardian
 
-> 「讓智脊，成為你人生中的知己。」
-> **智脊 (Smart Spine)** 是一款基於電腦視覺的即時坐姿監測系統，旨在解決現代人長期久坐導致的脊椎健康問題。本專案發源於 **清大立德 AI 冬季實戰工作坊**，實現了從數據採集、特徵工程到模型部署的全棧開發流程。
-
-
----
-
-## 專案參與人
-Frey 傅暐程 frey.50302.fu.123@gmail.com
-刁元廷 tjimmy0113@gmail.com
-Alvin ooii8929@gmail.com
+> "Let Smart Spine be the one who knows your back best."
+> **Smart Spine** is a real-time posture monitoring system based on computer vision, designed to address spinal health issues caused by prolonged sitting. This project originated from the **NTHU Leader AI Winter Workshop**, implementing a full-stack development workflow from data collection and feature engineering to model deployment.
 
 ---
 
-## 💡 專案 Demo
-https://youtu.be/kE5gtMvK_TI
-https://drive.google.com/file/d/11X3Vzp-c48s-IwMnMFBf-W5gu10aM6xj/view?usp=sharing
+## Project Contributors
+
+Frey (Wei-Cheng) Fu - frey.50302.fu.123@gmail.com<br>
+Yuan-Ting (Jimmy) Tiao - tjimmy0113@gmail.com<br>
+Alvin - ooii8929@gmail.com
 
 ---
 
-## 💡 專案亮點
+## 💡 Project Demo
 
-* **端點偵測技術**：採用 **PoseNet** 進行 17 個關鍵點偵測，並針對特定場景優化。
-* **高維特徵工程**：將關鍵點座標與影像區域特徵融合，展開成 **14,739 維** 的特徵向量，捕捉細微的姿勢差異。
-* **輕量化部署**：透過 Web 技術實現，無需安裝環境，開啟瀏覽器即可進行推論，極大化使用者體驗。
+[https://youtu.be/kE5gtMvK_TI](https://youtu.be/kE5gtMvK_TI) <br>
+[https://drive.google.com/file/d/11X3Vzp-c48s-IwMnMFBf-W5gu10aM6xj/view?usp=sharing](https://drive.google.com/file/d/11X3Vzp-c48s-IwMnMFBf-W5gu10aM6xj/view?usp=sharing)
 
 ---
 
-## 🛠 技術架構
+## 💡 Project Highlights
 
-### 系統分析工作流
+* **Keypoint Detection Technology**: Utilizes **PoseNet** to detect 17 human keypoints, with specific optimizations for seated scenarios.
+* **High-Dimensional Feature Engineering**: Integrates keypoint coordinates with image area features, expanding into a **14,739-dimensional** feature vector to capture subtle postural differences.
+* **Lightweight Deployment**: Implemented via Web technology. No environment installation is required; inference can be performed directly in a browser for an optimized user experience.
 
-本系統透過分析人體上半身核心節點，精準判斷受試者是否處於「正確坐姿」或「錯誤姿勢」。
+---
 
-| 階段 | 說明 |
+## 🛠 Technical Architecture
+
+### System Analysis Workflow
+
+The system analyzes core nodes of the upper body to accurately determine whether a subject is in a "Correct Posture" or "Incorrect Posture."
+
+| Phase | Description |
 | --- | --- |
-| **影像輸入** | 透過 WebCam 或圖片進行即時串流輸入。 |
-| **關鍵點偵測** | 使用 **PoseNet** 提取 17 個身體關鍵點（包含五官、雙肩、雙肘、雙髖等）。 |
-| **特徵展平** | 提取關鍵點座標與局部影像特徵，融合為 **14,739 維特徵向量**。 |
-| **分類推論** | 傳入自定義的神經網絡分類器進行二分類（Binary Classification）。 |
-| **結果輸出** | 即時反饋正確/錯誤機率，並提醒使用者調整姿勢。 |
+| **Video Input** | Real-time streaming input via WebCam or static images. |
+| **Keypoint Detection** | Extracts 17 body keypoints (facial features, shoulders, elbows, hips, etc.) using **PoseNet**. |
+| **Feature Flattening** | Combines keypoint coordinates and local image features into a **14,739-dimensional feature vector**. |
+| **Classification Inference** | Passed into a custom neural network classifier for Binary Classification. |
+| **Result Output** | Real-time feedback on correct/incorrect probability with reminders to adjust posture. |
 
 ---
 
-## 🧠 模型設計 (Model Architecture)
+## 🧠 Model Architecture
 
-為了在網頁端保持高效能與準確率，我們設計了一個精簡而強大的 MLP（多層感知器）：
+To maintain high performance and accuracy on the web, we designed a streamlined yet powerful MLP (Multi-Layer Perceptron):
 
 * **Input Layer**: 14,739 Features
 * **Dense Layer 1**: 100 Neurons (ReLU activation)
-* **Regularization**: Dropout (50%) - *有效防止過擬合，提升泛化能力。*
-* **Output Layer**: 2 Neurons (Softmax activation) - *輸出正確與錯誤坐姿的機率分布。*
+* **Regularization**: Dropout (50%) - *Effectively prevents overfitting and improves generalization.*
+* **Output Layer**: 2 Neurons (Softmax activation) - *Outputs the probability distribution for correct and incorrect postures.*
 
 ---
 
-## 📊 關鍵點定義 (17 Keypoints)
+## 📊 Keypoint Definition (17 Keypoints)
 
-系統監控的 17 個核心端點如下：
+The 17 core endpoints monitored by the system are as follows:
 
-| ID | 部位 | ID | 部位 |
+| ID | Body Part | ID | Body Part |
 | --- | --- | --- | --- |
-| 0 | 鼻子 | 9-10 | 左右手腕 |
-| 1-2 | 左右眼 | 11-12 | 左右臀部 |
-| 3-4 | 左右耳 | 13-14 | 左右膝蓋 |
-| 5-6 | 左右肩膀 | 15-16 | 左右腳踝 |
-| 7-8 | 左右手肘 |  |  |
+| 0 | Nose | 9-10 | Left/Right Wrists |
+| 1-2 | Left/Right Eyes | 11-12 | Left/Right Hips |
+| 3-4 | Left/Right Ears | 13-14 | Left/Right Knees |
+| 5-6 | Left/Right Shoulders | 15-16 | Left/Right Ankles |
+| 7-8 | Left/Right Elbows |  |  |
 
 ---
 
-## 🚀 快速上手 (Quick Start)
+## 🚀 Quick Start
 
-本專案採用 Web 技術開發，支援即啟即用：
+Developed with Web technology, this project supports instant execution:
 
-1. **複製儲存庫**
+1. **Clone the Repository**
+
 ```bash
 git clone https://github.com/your-username/smart-spine.git
 cd smart-spine
+
 ```
 
+2. **Start a Local Server** (Python recommended)
 
-2. **啟動本地伺服器** (推薦使用 Python)
 ```bash
 python -m http.server 8000
 
 ```
 
-
-3. **執行應用**
-在瀏覽器開啟 `http://localhost:8000/posture_detection.html`
-
----
-
-## 📁 檔案說明
-
-* `posture_detection.html`: 核心應用程式，整合 PoseNet 與 Teachable Machine 推論引擎。
-* `posture_detection_architecture.docx`: 詳細的技術規格說明與產品規劃書。
-* `README.md`: 專案概覽與開發文檔。
+3. **Run the Application**
+Open `http://localhost:8000/posture_detection.html` in your browser.
 
 ---
 
-## 🤝 參考資料
+## 📁 File Descriptions
+
+* `posture_detection.html`: Core application, integrating PoseNet and the Teachable Machine inference engine.
+* `posture_detection_architecture.docx`: Detailed technical specifications and product planning document.
+* `README.md`: Project overview and development documentation.
+
+---
+
+## 🤝 References
 
 * **Dataset Source**: [Human Pose Dataset](https://dayta.nwu.ac.za/articles/dataset/Human_pose_dataset_sit_stand_pose_classes_/23290937)
 * **Training Platform**: [Teachable Machine](https://teachablemachine.withgoogle.com/train)
